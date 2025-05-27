@@ -1,38 +1,26 @@
-pipeline {
-    agent {
-        docker {
-            image 'node:18'
+node {
+    stage('Install Dependencies') {
+        docker.image('node:18').inside {
+            sh 'npm install'
         }
     }
 
-    stages {
-        stage('Install Dependencies') {
-            steps {
-                sh 'npm install'
-            }
+    stage('Run Tests') {
+        docker.image('node:18').inside {
+            sh 'npm test'
         }
+    }
 
-        stage('Run Tests') {
-            steps {
-                sh 'npm test'
-            }
+    stage('Build Docker Image') {
+        script {
+            dockerImage = docker.build('sungodnika7/nodejs-jenkins-app')
         }
+    }
 
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    dockerImage = docker.build("sungodnika7/nodejs-jenkins-app")
-                }
-            }
-        }
-
-        stage('Push to DockerHub') {
-            steps {
-                withDockerRegistry([ credentialsId: 'dockerhub-creds', url: '' ]) {
-                    script {
-                        dockerImage.push('latest')
-                    }
-                }
+    stage('Push to DockerHub') {
+        withDockerRegistry([credentialsId: 'dockerhub-creds', url: '']) {
+            script {
+                dockerImage.push('latest')
             }
         }
     }
